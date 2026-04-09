@@ -1,0 +1,43 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.egg-info/
+dist/
+build/
+
+# Virtual environments
+venv/
+venv310/
+.venv/
+env/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Data / Generated files
+backend/data/fetched_frames/
+backend/data/interpolated_frames/
+backend/data/enhanced_frames/
+backend/data/videos/
+backend/data/frame/
+backend/data/frames/
+backend/data/images/
+backend/satellite_frames/
+backend/output.txt
+backend/test_snapshot.jpg
+
+# RIFE model weights (too large for git)
+backend/rife/ECCV2022-RIFE/RIFE_trained_v6/
+
+# Misc
+*.mp4
+*.avi
+*.log

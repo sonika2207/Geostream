@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GeoStream — Disaster Analysis Report</title>
+    <meta name="description"
+        content="AI-powered satellite frame analysis for disaster monitoring, cyclone detection, and weather risk assessment.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="/static/style.css">
+    <link rel="stylesheet" href="/static/analysis.css">
+</head>
+
+<body class="page-result">
+    <div class="bg-particles" id="particles"></div>
+
+    <!-- Header -->
+    <header class="header">
+        <div class="logo">
+            <span class="logo-icon">🛰️</span>
+            <span class="logo-text">GeoStream</span>
+        </div>
+        <p class="header-tagline">Disaster Monitoring & Environmental Intelligence</p>
+    </header>
+
+    <!-- Main -->
+    <main class="main-container analysis-container">
+
+        <!-- Loading State -->
+        <div class="analysis-loading glass-card" id="analysisLoading">
+            <div class="orbit-loader">
+                <div class="orbit"></div>
+                <div class="orbit orbit-2"></div>
+                <span class="orbit-center">🔬</span>
+            </div>
+            <h2>Analyzing Satellite Frames...</h2>
+            <p class="loading-message">Running disaster detection algorithms</p>
+        </div>
+
+        <!-- Error State -->
+        <div class="analysis-error glass-card" id="analysisError" style="display:none;">
+            <div class="error-icon">⚠️</div>
+            <h2>Analysis Failed</h2>
+            <p id="errorMessage">An unknown error occurred.</p>
+            <a href="/" class="btn-primary" style="max-width: 300px; margin: 20px auto 0;">← Back to Home</a>
+        </div>
+
+        <!-- Report -->
+        <div class="report-wrapper" id="reportWrapper" style="display:none;">
+
+            <!-- Report Header Card -->
+            <div class="report-header-card glass-card">
+                <div class="report-title-row">
+                    <div>
+                        <h1 id="reportTitle">📊 Satellite Analysis Report</h1>
+                        <p class="report-meta" id="reportMeta"></p>
+                    </div>
+                    <div class="risk-badge-large" id="riskBadgeLarge">
+                        <span class="risk-label">RISK</span>
+                        <span class="risk-value" id="riskValue">—</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Summary Grid -->
+            <div class="summary-grid">
+                <!-- Observation Card -->
+                <div class="summary-card glass-card">
+                    <div class="summary-card-header">
+                        <span class="summary-icon">🔭</span>
+                        <h3>Observation</h3>
+                    </div>
+                    <p id="observationText" class="summary-text"></p>
+                    <div class="observation-risk" id="observationRisk"></div>
+                </div>
+
+                <!-- Prediction Card -->
+                <div class="summary-card glass-card">
+                    <div class="summary-card-header">
+                        <span class="summary-icon">🌦️</span>
+                        <h3>Prediction</h3>
+                    </div>
+                    <div class="prediction-content">
+                        <div class="prediction-event" id="predictionEvent">—</div>
+                        <div class="prediction-events-list" id="predictionEventsList"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Cloud Movement & Metrics -->
+            <div class="detail-grid">
+                <!-- Cloud Movement -->
+                <div class="detail-card glass-card">
+                    <div class="detail-card-header">
+                        <span class="detail-icon">💨</span>
+                        <h3>Cloud Movement</h3>
+                    </div>
+                    <div class="compass-wrapper">
+                        <div class="compass" id="compass">
+                            <div class="compass-ring">
+                                <span class="compass-label compass-n">N</span>
+                                <span class="compass-label compass-e">E</span>
+                                <span class="compass-label compass-s">S</span>
+                                <span class="compass-label compass-w">W</span>
+                            </div>
+                            <div class="compass-needle" id="compassNeedle"></div>
+                            <div class="compass-center"></div>
+                        </div>
+                    </div>
+                    <div class="movement-info">
+                        <div class="movement-stat">
+                            <span class="stat-label">Direction</span>
+                            <span class="stat-value" id="moveDirection">—</span>
+                        </div>
+                        <div class="movement-stat">
+                            <span class="stat-label">Speed</span>
+                            <span class="stat-value" id="moveSpeed">—</span>
+                        </div>
+                        <div class="movement-stat">
+                            <span class="stat-label">Angle</span>
+                            <span class="stat-value" id="moveAngle">—</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Metrics -->
+                <div class="detail-card glass-card">
+                    <div class="detail-card-header">
+                        <span class="detail-icon">📊</span>
+                        <h3>Analysis Metrics</h3>
+                    </div>
+                    <div class="metrics-list">
+                        <div class="metric-row">
+                            <span class="metric-name">Avg Motion Score</span>
+                            <div class="metric-bar-container">
+                                <div class="metric-bar" id="barMotion" data-width="0"></div>
+                            </div>
+                            <span class="metric-val" id="valMotion">0</span>
+                        </div>
+                        <div class="metric-row">
+                            <span class="metric-name">Max Motion Score</span>
+                            <div class="metric-bar-container">
+                                <div class="metric-bar bar-secondary" id="barMaxMotion" data-width="0"></div>
+                            </div>
+                            <span class="metric-val" id="valMaxMotion">0</span>
+                        </div>
+                        <div class="metric-row">
+                            <span class="metric-name">Cloud Density</span>
+                            <div class="metric-bar-container">
+                                <div class="metric-bar bar-cloud" id="barCloud" data-width="0"></div>
+                            </div>
+                            <span class="metric-val" id="valCloud">0%</span>
+                        </div>
+                        <div class="metric-row">
+                            <span class="metric-name">Edge Density</span>
+                            <div class="metric-bar-container">
+                                <div class="metric-bar bar-edge" id="barEdge" data-width="0"></div>
+                            </div>
+                            <span class="metric-val" id="valEdge">0%</span>
+                        </div>
+                    </div>
+
+                    <!-- Anomaly Chips -->
+                    <div class="anomaly-section">
+                        <h4>Anomaly Detection</h4>
+                        <div class="anomaly-chips" id="anomalyChips"></div>
+                    </div>
+                </div>
+            </div>
+
+
+
+
+            <!-- Actions -->
+            <div class="report-actions">
+                <button class="btn-download-report" id="btnDownloadTxt" onclick="downloadTextReport()">
+                    📄 Download Report
+                </button>
+                <button class="btn-download-json" id="btnDownloadJson" onclick="downloadJsonReport()">
+                    📦 Download JSON
+                </button>
+            </div>
+            <div class="report-actions report-actions-nav">
+                <a href="/result.html" class="btn-primary" id="backToVideoBtn">
+                    🎬 View Video
+                </a>
+                <a href="/" class="btn-secondary">
+                    ← Generate Another
+                </a>
+            </div>
+        </div>
+    </main>
+
+    <footer class="footer">
+        <p>GeoStream • AI-Powered Disaster Monitoring • Himawari-8</p>
+    </footer>
+
+    <script>
+        // ── Particles ──
+        (function () {
+            const c = document.getElementById('particles');
+            if (!c) return;
+            for (let i = 0; i < 40; i++) {
+                const p = document.createElement('div');
+                p.className = 'particle';
+                p.style.left = Math.random() * 100 + '%';
+                p.style.animationDelay = Math.random() * 20 + 's';
+                p.style.animationDuration = (15 + Math.random() * 25) + 's';
+                p.style.width = p.style.height = (2 + Math.random() * 4) + 'px';
+                c.appendChild(p);
+            }
+        })();
+
+        // ── Fetch & Display Report ──
+        const loadingEl = document.getElementById('analysisLoading');
+        const errorEl = document.getElementById('analysisError');
+        const reportEl = document.getElementById('reportWrapper');
+
+        async function waitForAnalysis() {
+            // Poll analysis-status
+            while (true) {
+                try {
+                    const resp = await fetch('/analysis-status');
+                    const s = await resp.json();
+                    if (s.error) {
+                        showError(s.error);
+                        return;
+                    }
+                    if (s.has_result) {
+                        break;
+                    }
+                    if (!s.running && !s.has_result) {
+                        // Not running and no result — maybe navigated here directly
+                        // Try to get result anyway
+                        break;
+                    }
+                } catch (e) { }
+                await new Promise(r => setTimeout(r, 1200));
+            }
+
+            // Fetch the report
+            try {
+                const resp = await fetch('/analysis-result');
+                if (!resp.ok) {
+                    const err = await resp.json();
+                    showError(err.error || 'No analysis result available. Please run an analysis first.');
+                    return;
+                }
+                const report = await resp.json();
+                renderReport(report);
+            } catch (e) {
+                showError('Failed to load analysis report: ' + e.message);
+            }
+        }
+
+        function showError(msg) {
+            loadingEl.style.display = 'none';
+            errorEl.style.display = 'block';
+            document.getElementById('errorMessage').textContent = msg;
+        }
+
+        // Store report data globally for downloads
+        let _reportData = null;
+
+        function renderReport(r) {
+            _reportData = r;
+            loadingEl.style.display = 'none';
+            reportEl.style.display = 'block';
+
+            // Meta
+            document.getElementById('reportMeta').textContent =
+                `Region: ${r.region}  •  Time: ${r.time}  •  ${r.frames_analyzed} frames analyzed`;
+
+            // Risk badge
+            const riskVal = document.getElementById('riskValue');
+            riskVal.textContent = r.risk_level;
+            const riskBadge = document.getElementById('riskBadgeLarge');
+            riskBadge.classList.add('risk-' + r.risk_level.toLowerCase().replace(/[^a-z]/g, ''));
+
+            // Observation + Risk inline
+            document.getElementById('observationText').textContent = r.observation;
+            const riskEl = document.getElementById('observationRisk');
+            const riskClass = r.risk_level.toLowerCase().replace(/[^a-z]/g, '');
+            riskEl.innerHTML = `<span class="obs-risk-badge obs-risk-${riskClass}">⚡ Risk: ${r.risk_level}</span> <span class="obs-risk-reason">${r.risk_reason}</span>`;
+
+            // Prediction
+            const pred = r.prediction;
+            document.getElementById('predictionEvent').textContent = pred.primary_event;
+            const eventsList = document.getElementById('predictionEventsList');
+            pred.all_events.forEach(ev => {
+                const chip = document.createElement('span');
+                chip.className = 'event-chip';
+                chip.textContent = ev;
+                eventsList.appendChild(chip);
+            });
+
+            // Cloud movement compass
+            const cm = r.cloud_movement;
+            document.getElementById('moveDirection').textContent = cm.direction;
+            document.getElementById('moveSpeed').textContent = cm.speed.toFixed(3);
+            // Convert math angle (0°=East, CCW) to compass angle (0°=North, CW)
+            const compassAngle = (90 - cm.angle + 360) % 360;
+            document.getElementById('moveAngle').textContent = Math.round(compassAngle) + '°';
+            // Rotate needle — must keep the positioning transforms
+            const needle = document.getElementById('compassNeedle');
+            needle.style.transform = `translateX(-50%) translateY(-100%) rotate(${compassAngle}deg)`;
+
+            // Metrics bars
+            const metrics = r.metrics;
+            animateBar('barMotion', Math.min(metrics.avg_motion_score / 50 * 100, 100));
+            document.getElementById('valMotion').textContent = metrics.avg_motion_score.toFixed(2);
+
+            animateBar('barMaxMotion', Math.min(metrics.max_motion_score / 50 * 100, 100));
+            document.getElementById('valMaxMotion').textContent = metrics.max_motion_score.toFixed(2);
+
+            animateBar('barCloud', metrics.avg_cloud_density * 100);
+            document.getElementById('valCloud').textContent = (metrics.avg_cloud_density * 100).toFixed(1) + '%';
+
+            animateBar('barEdge', metrics.avg_edge_density * 100 * 5); // Scale for visibility
+            document.getElementById('valEdge').textContent = (metrics.avg_edge_density * 100).toFixed(2) + '%';
+
+            // Anomaly chips
+            const anomalyChips = document.getElementById('anomalyChips');
+            const spiral = r.anomalies.spiral_detection;
+            const brightness = r.anomalies.brightness_anomaly;
+
+            if (spiral.is_spiral) {
+                addChip(anomalyChips, '🌀 Spiral Pattern Detected', 'chip-danger');
+            } else {
+                addChip(anomalyChips, '🌀 No Spiral Pattern', 'chip-safe');
+            }
+            if (brightness.anomaly_detected) {
+                addChip(anomalyChips, `💡 Brightness Anomaly (Δ${brightness.max_change})`, 'chip-warning');
+            } else {
+                addChip(anomalyChips, '💡 Brightness Stable', 'chip-safe');
+            }
+            addChip(anomalyChips, `🔵 ${spiral.circle_count} circular structures`, 'chip-info');
+            addChip(anomalyChips, `🔲 Nested score: ${spiral.nested_score}`, 'chip-info');
+
+
+
+
+        }
+
+        // ── Download: Formatted Text Report ──
+        function downloadTextReport() {
+            if (!_reportData) return;
+            const r = _reportData;
+            const sep = '═'.repeat(60);
+            const sep2 = '─'.repeat(60);
+
+            let text = ``;
+            text += `${sep}\n`;
+            text += `  GEOSTREAM — SATELLITE ANALYSIS REPORT\n`;
+            text += `  AI-Powered Disaster Monitoring & Environmental Intelligence\n`;
+            text += `${sep}\n\n`;
+
+            text += `Region:  ${r.region}\n`;
+            text += `Time:    ${r.time}\n`;
+            text += `Frames:  ${r.frames_analyzed} frames analyzed\n\n`;
+
+            text += `${sep2}\n`;
+            text += `  DESCRIPTION\n`;
+            text += `${sep2}\n`;
+            text += `${r.description}\n\n`;
+
+            text += `${sep2}\n`;
+            text += `  OBSERVATION\n`;
+            text += `${sep2}\n`;
+            text += `${r.observation}\n\n`;
+
+            text += `${sep2}\n`;
+            text += `  CLOUD MOVEMENT\n`;
+            text += `${sep2}\n`;
+            text += `Direction:  ${r.cloud_movement.direction}\n`;
+            text += `Speed:      ${r.cloud_movement.speed}\n`;
+            text += `Angle:      ${r.cloud_movement.angle}°\n`;
+            text += `Summary:    ${r.cloud_movement.description}\n\n`;
+
+            text += `${sep2}\n`;
+            text += `  ANALYSIS METRICS\n`;
+            text += `${sep2}\n`;
+            text += `Avg Motion Score:   ${r.metrics.avg_motion_score}\n`;
+            text += `Max Motion Score:   ${r.metrics.max_motion_score}\n`;
+            text += `Avg Cloud Density:  ${(r.metrics.avg_cloud_density * 100).toFixed(1)}%\n`;
+            text += `Avg Edge Density:   ${(r.metrics.avg_edge_density * 100).toFixed(2)}%\n\n`;
+
+            text += `${sep2}\n`;
+            text += `  ANOMALY DETECTION\n`;
+            text += `${sep2}\n`;
+            const sp = r.anomalies.spiral_detection;
+            text += `Spiral Pattern:     ${sp.is_spiral ? 'DETECTED' : 'Not detected'}\n`;
+            text += `Circular Structures: ${sp.circle_count}\n`;
+            text += `Nested Score:       ${sp.nested_score}\n`;
+            text += `Spiral Confidence:  ${sp.confidence}%\n`;
+            const br = r.anomalies.brightness_anomaly;
+            text += `Brightness Anomaly: ${br.anomaly_detected ? 'DETECTED' : 'Not detected'}\n`;
+            text += `Max Brightness Δ:   ${br.max_change}\n`;
+            text += `Avg Brightness Δ:   ${br.avg_change}\n\n`;
+
+            text += `${sep2}\n`;
+            text += `  FRAME-BY-FRAME COMPARISON\n`;
+            text += `${sep2}\n`;
+            r.frame_differences.forEach(d => {
+                text += `  ${d.pair}\n`;
+                text += `    Motion: ${d.motion_score}  |  Cloud: ${(d.cloud_density*100).toFixed(1)}%  |  Edge: ${(d.edge_density*100).toFixed(2)}%\n`;
+                text += `    ${d.description}\n\n`;
+            });
+
+            text += `${sep}\n`;
+            text += `  FINAL SUMMARY\n`;
+            text += `${sep}\n\n`;
+            text += `Risk Level:   ${r.risk_level} — ${r.risk_reason}\n`;
+            text += `Prediction:   ${r.prediction.primary_event} (${r.prediction.all_events.join(', ')})\n`;
+            text += `Confidence:   ${r.confidence}%\n\n`;
+            text += `${sep}\n`;
+            text += `  Generated by GeoStream • ${new Date().toISOString()}\n`;
+            text += `${sep}\n`;
+
+            triggerDownload(text, `geostream_report_${Date.now()}.txt`, 'text/plain');
+        }
+
+        // ── Download: Raw JSON ──
+        function downloadJsonReport() {
+            if (!_reportData) return;
+            const json = JSON.stringify(_reportData, null, 2);
+            triggerDownload(json, `geostream_report_${Date.now()}.json`, 'application/json');
+        }
+
+        // ── Helper: trigger file download ──
+        function triggerDownload(content, filename, mimeType) {
+            const blob = new Blob([content], { type: mimeType });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            setTimeout(() => {
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            }, 100);
+        }
+
+        function animateBar(id, pct) {
+            const bar = document.getElementById(id);
+            setTimeout(() => {
+                bar.style.width = Math.min(pct, 100) + '%';
+            }, 300);
+        }
+
+        function addChip(container, text, cls) {
+            const chip = document.createElement('span');
+            chip.className = 'anomaly-chip ' + cls;
+            chip.textContent = text;
+            container.appendChild(chip);
+        }
+
+        // Start
+        waitForAnalysis();
+    </script>
+</body>
+
+</html>

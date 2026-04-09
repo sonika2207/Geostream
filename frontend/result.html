@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GeoStream — Your Satellite Video</title>
+    <meta name="description" content="View your AI-enhanced satellite video generated from Himawari-8 imagery.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;600;700&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="/static/style.css">
+    <style>
+        .analyze-section {
+            margin-top: 28px;
+            padding-top: 24px;
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .analyze-section h2 {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.1rem;
+            color: var(--text-primary);
+            margin-bottom: 10px;
+            text-align: center;
+        }
+
+        .analyze-section p {
+            font-size: 0.82rem;
+            color: var(--text-secondary);
+            text-align: center;
+            margin-bottom: 16px;
+            line-height: 1.5;
+        }
+
+        .analyze-form {
+            display: flex;
+            gap: 12px;
+            align-items: flex-end;
+        }
+
+        .analyze-form .form-group {
+            flex: 1;
+            margin-bottom: 0;
+        }
+
+        .btn-analyze {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 12px 24px;
+            background: linear-gradient(135deg, #f97316, #ef4444);
+            color: white;
+            border: none;
+            border-radius: var(--radius-sm);
+            font-family: 'Inter', sans-serif;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            white-space: nowrap;
+            gap: 6px;
+        }
+
+        .btn-analyze:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 30px rgba(239, 68, 68, 0.3);
+        }
+
+        .btn-analyze:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        @media (max-width: 600px) {
+            .analyze-form {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+
+<body class="page-result">
+    <div class="bg-particles" id="particles"></div>
+
+    <!-- Header -->
+    <header class="header">
+        <div class="logo">
+            <span class="logo-icon">🛰️</span>
+            <span class="logo-text">GeoStream</span>
+        </div>
+    </header>
+
+    <!-- Main -->
+    <main class="main-container">
+        <div class="result-card glass-card">
+            <div class="card-header">
+                <h1>🎬 Your Satellite Video</h1>
+                <p class="card-subtitle">AI-enhanced satellite imagery rendered into a smooth video.</p>
+            </div>
+
+            <div class="video-wrapper">
+                <video id="satelliteVideo" controls autoplay loop>
+                    <source src="/video" type="video/mp4">
+                    Your browser does not support the video element.
+                </video>
+            </div>
+
+            <div class="result-actions">
+                <a href="/video" download="geostream_satellite.mp4" class="btn-primary btn-download">
+                    📥 Download Video
+                </a>
+                <a href="/" class="btn-secondary">
+                    ← Generate Another
+                </a>
+            </div>
+
+            <div class="pipeline-info">
+                <div class="info-chip">
+                    <span>📡</span> Himawari-8
+                </div>
+                <div class="info-chip">
+                    <span>🔀</span> RIFE Interpolated
+                </div>
+                <div class="info-chip">
+                    <span>✨</span> Real-ESRGAN Enhanced
+                </div>
+            </div>
+
+            <!-- ── Disaster Analysis Section ── -->
+            <div class="analyze-section">
+                <h2>🔬 Disaster & Weather Analysis</h2>
+                <p>Analyze the fetched satellite frames for cyclone patterns, storm indicators, cloud movement, and risk assessment.</p>
+                <div class="analyze-form">
+                    <div class="form-group">
+                        <label for="region">
+                            <span class="label-icon">🌍</span> Region
+                        </label>
+                        <input type="text" id="region" placeholder="e.g. Bay of Bengal, Western Pacific"
+                            value="Himawari-8 Full Disk"
+                            style="width:100%; padding:10px 14px; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.1); border-radius:var(--radius-sm); color:var(--text-primary); font-family:'Inter',sans-serif; font-size:0.9rem; outline:none;">
+                    </div>
+                    <button class="btn-analyze" id="analyzeBtn" onclick="startAnalysis()">
+                        🔍 Analyze Frames
+                    </button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer class="footer">
+        <p>GeoStream • Himawari-8 • RIFE • Real-ESRGAN • Disaster Monitoring</p>
+    </footer>
+
+    <script>
+        // Particles
+        (function () {
+            const c = document.getElementById('particles');
+            if (!c) return;
+            for (let i = 0; i < 40; i++) {
+                const p = document.createElement('div');
+                p.className = 'particle';
+                p.style.left = Math.random() * 100 + '%';
+                p.style.animationDelay = Math.random() * 20 + 's';
+                p.style.animationDuration = (15 + Math.random() * 25) + 's';
+                p.style.width = p.style.height = (2 + Math.random() * 4) + 'px';
+                c.appendChild(p);
+            }
+        })();
+
+        // Analyze function
+        async function startAnalysis() {
+            const btn = document.getElementById('analyzeBtn');
+            const region = document.getElementById('region').value || 'Himawari-8 Full Disk';
+
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner" style="width:16px;height:16px;border:2px solid rgba(255,255,255,0.3);border-top-color:white;border-radius:50%;display:inline-block;animation:spin 0.7s linear infinite;"></span> Analyzing...';
+
+            try {
+                const resp = await fetch('/analyze', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        region: region,
+                        fetch_new: false
+                    })
+                });
+
+                const data = await resp.json();
+                if (!resp.ok) {
+                    alert(data.error || 'Failed to start analysis');
+                    btn.disabled = false;
+                    btn.innerHTML = '🔍 Analyze Frames';
+                    return;
+                }
+
+                // Redirect to analysis report page
+                window.location.href = '/analysis-report.html';
+            } catch (err) {
+                alert('Error: ' + err.message);
+                btn.disabled = false;
+                btn.innerHTML = '🔍 Analyze Frames';
+            }
+        }
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GeoStream — Satellite Video Generator</title>
+    <meta name="description"
+        content="Generate smooth, AI-enhanced satellite videos from Himawari-8 imagery using RIFE interpolation and Real-ESRGAN super-resolution.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;600;700&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+
+<body class="page-index">
+    <!-- Animated background particles -->
+    <div class="bg-particles" id="particles"></div>
+
+    <!-- Header -->
+    <header class="header">
+        <div class="logo">
+            <span class="logo-icon">🛰️</span>
+            <span class="logo-text">GeoStream</span>
+        </div>
+        <p class="header-tagline">AI-Powered Satellite Video Generation</p>
+    </header>
+
+    <!-- Main Card -->
+    <main class="main-container">
+        <div class="card glass-card">
+            <div class="card-header">
+                <h1>Generate Satellite Video</h1>
+                <p class="card-subtitle">Select a date and time range to capture Himawari-8 satellite frames, enhance
+                    them with AI, and create a smooth video.</p>
+            </div>
+
+            <form id="generateForm" class="form">
+                <!-- Date -->
+                <div class="form-group">
+                    <label for="date">
+                        <span class="label-icon">📅</span> Date
+                    </label>
+                    <input type="date" id="date" required>
+                </div>
+
+                <!-- Time Range -->
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="from_time">
+                            <span class="label-icon">🕐</span> From
+                        </label>
+                        <input type="time" id="from_time" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="to_time">
+                            <span class="label-icon">🕐</span> To
+                        </label>
+                        <input type="time" id="to_time" required>
+                    </div>
+                </div>
+
+                <!-- Options -->
+                <div class="options-section">
+                    <div class="option-row">
+                        <label class="toggle-label" for="enhance">
+                            <span class="label-icon">✨</span> Real-ESRGAN Enhancement
+                        </label>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="enhance" checked>
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Submit -->
+                <button type="submit" class="btn-primary" id="submitBtn">
+                    <span class="btn-text">🚀 Generate Video</span>
+                    <span class="btn-loader" style="display:none;">
+                        <span class="spinner"></span> Processing...
+                    </span>
+                </button>
+            </form>
+        </div>
+
+        <!-- Loading Overlay -->
+        <div class="loading-overlay" id="loadingOverlay" style="display:none;">
+            <div class="loading-card glass-card">
+                <div class="orbit-loader">
+                    <div class="orbit"></div>
+                    <div class="orbit orbit-2"></div>
+                    <span class="orbit-center">🛰️</span>
+                </div>
+                <h2 id="loadingStage">Initializing...</h2>
+                <div class="progress-bar-container">
+                    <div class="progress-bar" id="progressBar" style="width: 0%"></div>
+                </div>
+                <p class="loading-message" id="loadingMessage">Starting pipeline...</p>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <p>GeoStream • Himawari-8 • RIFE • Real-ESRGAN</p>
+    </footer>
+
+    <script src="/static/script.js"></script>
+</body>
+
+</html>
