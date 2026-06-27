@@ -41,20 +41,31 @@ app.add_middleware(
 )
 
 # Paths and configurable directories
-BASE_DIR = Path(__file__).resolve().parent
-FRONTEND_DIR = Path(__file__).resolve().parent.parent / "frontend"
-VIDEO_DIR = Path(os.environ.get("VIDEO_DIR", BASE_DIR / "data" / "videos"))
+BACKEND_DIR = Path(__file__).resolve().parent
+BASE_DIR = Path(__file__).resolve().parent.parent
+FRONTEND_DIR = BASE_DIR / "frontend"
+
+# Fallback for Docker container if frontend is under /app/frontend and backend is directly under /app
+if not FRONTEND_DIR.exists():
+    docker_frontend = BACKEND_DIR / "frontend"
+    if docker_frontend.exists():
+        FRONTEND_DIR = docker_frontend
+
+VIDEO_DIR = Path(os.environ.get("VIDEO_DIR", BACKEND_DIR / "data" / "videos"))
 VIDEO_DIR.mkdir(parents=True, exist_ok=True)
 VIDEO_PATH = VIDEO_DIR / os.environ.get("VIDEO_NAME", "satellite_video.mp4")
-FRAMES_DIR = Path(os.environ.get("FRAMES_DIR", BASE_DIR / "data" / "fetched_frames"))
+FRAMES_DIR = Path(os.environ.get("FRAMES_DIR", BACKEND_DIR / "data" / "fetched_frames"))
 FRAMES_DIR.mkdir(parents=True, exist_ok=True)
 
 # Ensure RIFE output directory exists (same as used by rife_interpolator default)
-RIFE_OUT = Path(os.environ.get("RIFE_OUTPUT_DIR", BASE_DIR / "data" / "interpolated_frames"))
+RIFE_OUT = Path(os.environ.get("RIFE_OUTPUT_DIR", BACKEND_DIR / "data" / "interpolated_frames"))
 RIFE_OUT.mkdir(parents=True, exist_ok=True)
 
 # Mount static assets
-app.mount("/static", StaticFiles(directory=str(FRONTEND_DIR)), name="static")
+if FRONTEND_DIR.exists() and FRONTEND_DIR.is_dir():
+    app.mount("/static", StaticFiles(directory=str(FRONTEND_DIR)), name="static")
+else:
+    LOG.warning("Frontend directory not found at '%s'. Static files will not be served.", FRONTEND_DIR)
 
 # FFmpeg detection helper
 import shutil
