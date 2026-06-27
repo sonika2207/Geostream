@@ -1,21 +1,24 @@
-"""
-RIFE Frame Interpolation Module
-Uses the ECCV2022-RIFE model to generate intermediate frames between consecutive input frames.
-"""
-
 import os
 import sys
 import cv2
 import torch
 import numpy as np
-from PIL import Image
 
 # Add RIFE model directory to path
 RIFE_DIR = os.path.join(os.path.dirname(__file__), "rife", "ECCV2022-RIFE")
 sys.path.insert(0, RIFE_DIR)
 
-WEIGHTS_DIR = os.path.join(RIFE_DIR, "RIFE_trained_v6", "train_log")
-OUTPUT_DIR = os.path.join(os.path.dirname(__file__), "data", "interpolated_frames")
+# Configurable paths via environment variables
+WEIGHTS_DIR = os.environ.get("RIFE_WEIGHTS_DIR") or os.path.join(RIFE_DIR, "RIFE_trained_v6", "train_log")
+# Allow overriding Google Drive id for the model archive
+RIFE_GDRIVE_ID = os.environ.get("RIFE_WEIGHTS_GDRIVE_ID")
+
+OUTPUT_DIR = os.environ.get("RIFE_OUTPUT_DIR") or os.path.join(os.path.dirname(__file__), "data", "interpolated_frames")
+
+# Logging
+import logging
+from model_downloader import ensure_rife_weights
+LOG = logging.getLogger("rife_interpolator")
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -23,17 +26,37 @@ _model = None
 
 
 def _load_model():
-    """Load RIFE model (cached singleton)."""
+    """Load RIFE model (cached singleton). Ensures weights are present first."""
     global _model
     if _model is not None:
         return _model
 
-    from model.RIFE import Model
+    # Ensure the weights exist (download if necessary)
+    try:
+        ensured = ensure_rife_weights(WEIGHTS_DIR, gdrive_id=RIFE_GDRIVE_ID)
+        LOG.info("Using RIFE weights at %s", ensured)
+    except Exception as e:
+        LOG.exception("Failed to ensure RIFE weights: %s", e)
+        raise
+
+    # Dynamically import model based on what is available in the weights directory
+    from pathlib import Path
+    try:
+        parent_dir = str(Path(ensured).parent)
+        if parent_dir not in sys.path:
+            sys.path.insert(0, parent_dir)
+        from train_log.RIFE_HDv3 import Model
+        LOG.info("Loaded v3.x HD model from train_log.")
+    except Exception as e:
+        LOG.warning("Failed to load v3.x HD model: %s. Falling back to ECCV2022-RIFE model.", e)
+        from model.RIFE import Model
+        LOG.info("Loaded ECCV2022-RIFE model.")
+
     _model = Model()
-    _model.load_model(WEIGHTS_DIR, -1)
+    _model.load_model(str(ensured), -1)
     _model.eval()
     _model.device()
-    print(f"✅ RIFE model loaded from {WEIGHTS_DIR}  (device: {device})")
+    LOG.info("RIFE model loaded from %s (device: %s)", ensured, device)
     return _model
 
 
@@ -72,7 +95,7 @@ def interpolate_frames(input_frames: list[str], exp: int = 1) -> list[str]:
         Sorted list of all output frame paths (original + interpolated).
     """
     if len(input_frames) < 2:
-        print("⚠️  Need at least 2 frames for interpolation")
+        print("Warning: Need at least 2 frames for interpolation")
         return input_frames
 
     os.makedirs(OUTPUT_DIR, exist_ok=True)
@@ -84,7 +107,7 @@ def interpolate_frames(input_frames: list[str], exp: int = 1) -> list[str]:
     all_output = []
     idx = 0
 
-    print(f"🔀 Interpolating {len(input_frames)} frames (exp={exp})...")
+    print(f"Interpolating {len(input_frames)} frames (exp={exp})...")
 
     for i in range(len(input_frames)):
         # Always save the original frame
@@ -134,5 +157,5 @@ def interpolate_frames(input_frames: list[str], exp: int = 1) -> list[str]:
                 all_output.append(out_path)
                 idx += 1
 
-    print(f"✅ Interpolation complete: {len(all_output)} total frames")
+    print(f"Interpolation complete: {len(all_output)} total frames")
     return all_output

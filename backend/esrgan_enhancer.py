@@ -15,7 +15,10 @@ import torch
 import torchvision.transforms.functional as _F
 sys.modules.setdefault("torchvision.transforms.functional_tensor", _F)
 
-OUTPUT_DIR = os.path.join(os.path.dirname(__file__), "data", "enhanced_frames")
+OUTPUT_DIR = os.environ.get("ESRGAN_OUTPUT_DIR") or os.path.join(os.path.dirname(__file__), "data", "enhanced_frames")
+
+import logging
+LOG = logging.getLogger("esrgan_enhancer")
 
 _upsampler = None
 

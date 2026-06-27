@@ -41,3 +41,14 @@ backend/rife/ECCV2022-RIFE/RIFE_trained_v6/
 *.mp4
 *.avi
 *.log
+
+# Python cache
+*.pyc
+*.pyd
+.pytest_cache/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Environment variables
+.env

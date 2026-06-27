@@ -21,21 +21,61 @@ from frame_analyzer import run_full_analysis
 
 app = FastAPI(title="GeoStream", version="1.0")
 
-# CORS
+# Logging
+import logging
+logging.basicConfig(level=logging.INFO)
+LOG = logging.getLogger("geostream")
+
+# CORS (configurable via env)
+_allowed_origins = os.environ.get("CORS_ALLOW_ORIGINS", "*")
+if _allowed_origins == "*":
+    allow_origins = ["*"]
+else:
+    allow_origins = [o.strip() for o in _allowed_origins.split(",") if o.strip()]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=allow_origins,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Paths
+# Paths and configurable directories
+BASE_DIR = Path(__file__).resolve().parent
 FRONTEND_DIR = Path(__file__).resolve().parent.parent / "frontend"
-VIDEO_PATH = Path(__file__).resolve().parent / "data" / "videos" / "satellite_video.mp4"
-FRAMES_DIR = Path(__file__).resolve().parent / "data" / "fetched_frames"
+VIDEO_DIR = Path(os.environ.get("VIDEO_DIR", BASE_DIR / "data" / "videos"))
+VIDEO_DIR.mkdir(parents=True, exist_ok=True)
+VIDEO_PATH = VIDEO_DIR / os.environ.get("VIDEO_NAME", "satellite_video.mp4")
+FRAMES_DIR = Path(os.environ.get("FRAMES_DIR", BASE_DIR / "data" / "fetched_frames"))
+FRAMES_DIR.mkdir(parents=True, exist_ok=True)
+
+# Ensure RIFE output directory exists (same as used by rife_interpolator default)
+RIFE_OUT = Path(os.environ.get("RIFE_OUTPUT_DIR", BASE_DIR / "data" / "interpolated_frames"))
+RIFE_OUT.mkdir(parents=True, exist_ok=True)
 
 # Mount static assets
 app.mount("/static", StaticFiles(directory=str(FRONTEND_DIR)), name="static")
+
+# FFmpeg detection helper
+import shutil
+
+def check_ffmpeg():
+    ff = shutil.which("ffmpeg")
+    if not ff:
+        LOG.error("FFmpeg not found in PATH. Please install FFmpeg and ensure it's on PATH.")
+        return False
+    LOG.info("FFmpeg found: %s", ff)
+    return True
+
+# Health endpoint
+@app.get("/health")
+def health():
+    """Basic health check for readiness. Verifies essential components."""
+    ff = check_ffmpeg()
+    return {
+        "ok": True,
+        "ffmpeg": bool(ff),
+    }
 
 # Pipeline status tracking
 pipeline_status = {
