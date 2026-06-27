@@ -151,11 +151,14 @@ def _run_pipeline(date_str: str, from_time: str, to_time: str, use_esrgan: bool,
 @app.get("/video")
 def video():
     if not VIDEO_PATH.exists():
-        return JSONResponse({"error": "No video generated yet"}, status_code=404)
+        return JSONResponse(
+            {"error": "No video generated yet"},
+            status_code=404
+        )
+
     return FileResponse(
-        str(VIDEO_PATH),
-        media_type="video/mp4",
-        filename="geostream_satellite.mp4"
+        path=str(VIDEO_PATH),
+        media_type="video/mp4"
     )
 
 

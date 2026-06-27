@@ -101,13 +101,11 @@ def generate_video(frames: list[str], output: str | None = None, fps: int = 24) 
         if os.path.exists(temp_output):
             os.remove(temp_output)
         print(f"🎬 Video created: {output}  ({written} frames @ {fps} FPS, H.264)")
-    except (FileNotFoundError, subprocess.CalledProcessError) as e:
-        # ffmpeg not available or failed — rename temp file as fallback
-        print(f"⚠️  ffmpeg re-encode failed ({e}), falling back to MJPG AVI")
-        if os.path.exists(temp_output):
-            if os.path.exists(output):
-                os.remove(output)
-            os.rename(temp_output, output)
-        print(f"🎬 Video created: {output}  ({written} frames @ {fps} FPS)")
+    except subprocess.CalledProcessError as e:
+        print("========== FFMPEG ERROR ==========")
+        print(e.stderr.decode())
+        raise
+    except FileNotFoundError:
+        raise RuntimeError("FFmpeg is not installed or not added to PATH.")
 
     return output
