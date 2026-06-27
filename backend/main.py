@@ -7,6 +7,14 @@ import os
 import asyncio
 import traceback
 from pathlib import Path
+import torch
+
+# Limit PyTorch CPU thread allocation to save memory on server hosting platforms (e.g. Render)
+try:
+    torch.set_num_threads(1)
+    torch.set_num_interop_threads(1)
+except Exception:
+    pass
 
 from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse, FileResponse, JSONResponse
@@ -176,10 +184,23 @@ def _run_pipeline(date_str: str, from_time: str, to_time: str, use_esrgan: bool,
         _update_status("interpolating", 35, f"Interpolating {len(fetched)} frames with RIFE...")
         interpolated = interpolate_frames(fetched, exp=rife_exp)
 
+        # Free RIFE memory immediately to prevent concurrent model memory overhead
+        try:
+            import rife_interpolator
+            rife_interpolator.unload_model()
+        except Exception as e:
+            LOG.warning("Failed to unload RIFE model: %s", e)
+
         # ── Step 3: Real-ESRGAN Enhancement ──
         if use_esrgan:
             _update_status("enhancing", 60, f"Enhancing {len(interpolated)} frames with Real-ESRGAN...")
             final_frames = enhance_frames(interpolated, scale=4)
+            # Free Real-ESRGAN memory immediately after use
+            try:
+                import esrgan_enhancer
+                esrgan_enhancer.unload_model()
+            except Exception as e:
+                LOG.warning("Failed to unload Real-ESRGAN model: %s", e)
         else:
             final_frames = interpolated
 

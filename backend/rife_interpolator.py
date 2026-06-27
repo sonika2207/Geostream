@@ -4,6 +4,13 @@ import cv2
 import torch
 import numpy as np
 
+# Limit PyTorch CPU thread allocation to save memory on server hosting platforms (e.g. Render)
+try:
+    torch.set_num_threads(1)
+    torch.set_num_interop_threads(1)
+except Exception:
+    pass
+
 # Add RIFE model directory to path
 RIFE_DIR = os.path.join(os.path.dirname(__file__), "rife", "ECCV2022-RIFE")
 sys.path.insert(0, RIFE_DIR)
@@ -23,6 +30,18 @@ LOG = logging.getLogger("rife_interpolator")
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 _model = None
+
+
+def unload_model():
+    """Unload model from memory and trigger garbage collection to free RAM."""
+    global _model
+    if _model is not None:
+        _model = None
+        import gc
+        gc.collect()
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+        LOG.info("RIFE model unloaded from memory.")
 
 
 def _load_model():

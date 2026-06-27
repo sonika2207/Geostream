@@ -9,6 +9,13 @@ import cv2
 import numpy as np
 import torch
 
+# Limit PyTorch CPU thread allocation to save memory on server hosting platforms (e.g. Render)
+try:
+    torch.set_num_threads(1)
+    torch.set_num_interop_threads(1)
+except Exception:
+    pass
+
 # ── Compatibility shim ──
 # basicsr references torchvision.transforms.functional_tensor which was
 # removed in torchvision >= 0.18.  Alias it so the import succeeds.
@@ -21,6 +28,18 @@ import logging
 LOG = logging.getLogger("esrgan_enhancer")
 
 _upsampler = None
+
+
+def unload_model():
+    """Unload model from memory and trigger garbage collection to free RAM."""
+    global _upsampler
+    if _upsampler is not None:
+        _upsampler = None
+        import gc
+        gc.collect()
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+        LOG.info("Real-ESRGAN model unloaded from memory.")
 
 
 def _load_model(scale: int = 2):
