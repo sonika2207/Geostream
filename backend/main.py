@@ -8,14 +8,7 @@ import asyncio
 import traceback
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
-import torch
 
-# Limit PyTorch CPU thread allocation to save memory on server hosting platforms (e.g. Render)
-try:
-    torch.set_num_threads(1)
-    torch.set_num_interop_threads(1)
-except Exception:
-    pass
 
 from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse, FileResponse, JSONResponse
@@ -123,6 +116,24 @@ def _update_status(stage: str, progress: int, message: str):
     pipeline_status["message"] = message
 
 
+_torch_configured = False
+
+def _ensure_torch_configured():
+    """Import torch and apply thread limits, lazily and only once.
+    Deferred so module import (and therefore server boot) never pays torch's
+    memory cost — only the first real pipeline run does."""
+    global _torch_configured
+    if _torch_configured:
+        return
+    import torch
+    try:
+        torch.set_num_threads(1)
+        torch.set_num_interop_threads(1)
+    except Exception as e:
+        LOG.warning("Failed to set torch thread limits: %s", e)
+    _torch_configured = True
+
+
 # ──────────────── Routes ────────────────
 
 @app.get("/", response_class=HTMLResponse)
@@ -174,6 +185,7 @@ async def generate(req: Request):
 
 def _run_pipeline(date_str: str, from_time: str, to_time: str, use_esrgan: bool, rife_exp: int):
     """Execute the full satellite video pipeline."""
+    _ensure_torch_configured()
     pipeline_status["running"] = True
     pipeline_status["error"] = None
 
