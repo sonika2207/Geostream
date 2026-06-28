@@ -1,3 +1,5 @@
+
+
 # GeoStream
 
 Turns raw Himawari-8 satellite imagery into smooth, upscaled timelapse video. Fetches frames for a given date/time range, interpolates between them with RIFE for fluid motion, enhances detail with Real-ESRGAN, and stitches the result into an MP4 — plus a frame-analysis mode for spotting changes across a sequence.
@@ -12,10 +14,9 @@ Turns raw Himawari-8 satellite imagery into smooth, upscaled timelapse video. Fe
 ## Demo
 
 Demo video:
-<video controls width="100%">
-  <source src="https://raw.githubusercontent.com/sonika2207/Geostream/main/demo/geostream-demo.mp4" type="video/mp4">
 
-</video>
+https://github.com/user-attachments/assets/0472b2fa-e37f-453b-99f1-4f66a91538aa
+
 
 Home:
 <img width="1875" height="1020" alt="image" src="https://github.com/user-attachments/assets/0fc2f339-19e3-41d9-8717-7ac491e48440" />
