@@ -1,5 +1,6 @@
 import os
 import sys
+import gc
 import cv2
 import torch
 import numpy as np
@@ -175,6 +176,14 @@ def interpolate_frames(input_frames: list[str], exp: int = 1) -> list[str]:
                 cv2.imwrite(out_path, mid_bgr)
                 all_output.append(out_path)
                 idx += 1
+
+                # Explicitly free tensors to prevent RAM accumulation on constrained hosts
+                del mid, mid_img, mid_bgr
+
+            del t0, t1, img0_padded, img1_padded, img0_rgb, img1_rgb, img0, img1
+            gc.collect()
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
 
     print(f"Interpolation complete: {len(all_output)} total frames")
     return all_output

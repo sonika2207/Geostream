@@ -6,6 +6,7 @@ Full pipeline: Fetch Himawari-8 frames → RIFE interpolation → Real-ESRGAN en
 import os
 import asyncio
 import traceback
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 import torch
 
@@ -28,6 +29,9 @@ from video_generator import generate_video
 from frame_analyzer import run_full_analysis
 
 app = FastAPI(title="GeoStream", version="1.0")
+
+# Single-worker executor: prevents concurrent RIFE+ESRGAN model loads that would OOM the container
+_executor = ThreadPoolExecutor(max_workers=1)
 
 # Logging
 import logging
@@ -162,8 +166,8 @@ async def generate(req: Request):
     pipeline_status["message"] = ""
     pipeline_status["error"] = None
 
-    # Run pipeline in background
-    asyncio.get_event_loop().run_in_executor(None, _run_pipeline, date_str, from_time, to_time, use_esrgan, rife_exp)
+    # Run pipeline in background using bounded executor (max_workers=1 prevents OOM on constrained hosts)
+    asyncio.get_event_loop().run_in_executor(_executor, _run_pipeline, date_str, from_time, to_time, use_esrgan, rife_exp)
 
     return {"status": "started"}
 
@@ -253,9 +257,9 @@ async def analyze(req: Request):
     latest_analysis["error"] = None
     latest_analysis["result"] = None
 
-    # Run analysis in background
+    # Run analysis in background using bounded executor
     asyncio.get_event_loop().run_in_executor(
-        None, _run_analysis, region, date_str, from_time, to_time, fetch_new
+        _executor, _run_analysis, region, date_str, from_time, to_time, fetch_new
     )
 
     return {"status": "started"}

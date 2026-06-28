@@ -30,5 +30,7 @@ ENV PYTHONUNBUFFERED=1
 # Render provides PORT automatically
 EXPOSE 8000
 
-# Start FastAPI
-CMD ["sh", "-c", "uvicorn main:app --host 0.0.0.0 --port ${PORT:-8000}"]
+# Start FastAPI with extended timeouts to handle long RIFE interpolation jobs
+# --timeout-keep-alive: keep HTTP connection alive up to 300s
+# --workers 1: single worker to minimize memory usage on constrained hosts
+CMD ["sh", "-c", "uvicorn main:app --host 0.0.0.0 --port ${PORT:-8000} --workers 1 --timeout-keep-alive 300"]
