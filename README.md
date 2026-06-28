@@ -1,147 +1,338 @@
+# 🛰️ GeoStream
 
+![Python](https://img.shields.io/badge/Python-3.11-blue?logo=python)
+![FastAPI](https://img.shields.io/badge/FastAPI-0.115-green?logo=fastapi)
+![PyTorch](https://img.shields.io/badge/PyTorch-2.x-red?logo=pytorch)
+![OpenCV](https://img.shields.io/badge/OpenCV-4.x-blue?logo=opencv)
+![Render](https://img.shields.io/badge/Deployment-Render-purple)
 
-# GeoStream
+GeoStream transforms raw **Himawari-8 satellite imagery** into smooth, AI-enhanced timelapse videos.
 
-Turns raw Himawari-8 satellite imagery into smooth, upscaled timelapse video. Fetches frames for a given date/time range, interpolates between them with RIFE for fluid motion, enhances detail with Real-ESRGAN, and stitches the result into an MP4 — plus a frame-analysis mode for spotting changes across a sequence.
-
-## 🌐 Live Demo
-
-**Demo:** https://geostream-zhsb.onrender.com
-> ⚠️ **Heads up about the live demo:** this is deployed on Render's free tier, which spins the instance down after inactivity. The first request after a period of idle can take 30–60s to wake up, and may briefly show a `502` or stay unresponsive until you refresh once or twice. If it doesn't recover, see [Known Limitation](#known-limitation-free-tier-memory-ceiling) below for why — short version: the ML stack this app runs is genuinely too heavy for a 512MB container. The video below shows the full pipeline running successfully end-to-end.
+The application fetches satellite frames for a user-selected date and time range, generates intermediate frames using **RIFE Frame Interpolation**, enhances image quality with **Real-ESRGAN**, and stitches everything into a browser-compatible MP4 video. It also includes a **frame-analysis mode** for identifying changes across a sequence for weather and disaster monitoring.
 
 ---
 
-## Demo
+# ✨ Features
 
-Demo video:
+- 📡 Fetches Himawari-8 satellite imagery
+- 🎞️ AI-powered frame interpolation using RIFE
+- ✨ Image enhancement using Real-ESRGAN
+- 🎥 Generates smooth MP4 timelapse videos
+- 🔬 Satellite frame analysis for weather/disaster monitoring
+- 📈 Live pipeline progress tracking
+- ⚡ Background processing with FastAPI
+- 🌐 Interactive web interface
+
+---
+
+# 🌐 Live Demo
+
+**Demo:** https://geostream-zhsb.onrender.com
+
+> ⚠️ **Note:** The application is hosted on Render's free tier. The service sleeps after inactivity, so the first request may take **30–60 seconds** to wake up and may briefly return a **502 Bad Gateway** until the instance starts again.
+
+---
+
+# 🎥 Demo
+
+Demo Video:
 
 https://github.com/user-attachments/assets/0472b2fa-e37f-453b-99f1-4f66a91538aa
 
+---
 
-Home:
-<img width="1875" height="1020" alt="image" src="https://github.com/user-attachments/assets/0fc2f339-19e3-41d9-8717-7ac491e48440" />
+# 📸 Screenshots
 
-Generating Process:
-Fetching:
-<img width="1872" height="1022" alt="image" src="https://github.com/user-attachments/assets/75d11cd6-ce48-4a84-b33c-d7f68972011c" />
+## Home
 
-RIFE Interpolation:
-<img width="1868" height="1020" alt="image" src="https://github.com/user-attachments/assets/eae8873b-9246-41e9-a80b-f2b9fb16e508" />
-
- Real-ESRGAN Enhancement:
-<img width="1873" height="1028" alt="image" src="https://github.com/user-attachments/assets/34b46e87-3dc4-415d-b106-d93bcdf87bb6" />
-
-
-Satellite Video:
-<img width="1877" height="1021" alt="image" src="https://github.com/user-attachments/assets/25c39716-20a4-4062-9d25-91b630bfecc5" />
-
-Frame Analysis:
-<img width="1860" height="1012" alt="image" src="https://github.com/user-attachments/assets/765eb0ca-904b-4993-a4ce-0711a70f39ec" />
-
-
-
-
-
-
-
-
-
+<img width="1875" alt="Home" src="https://github.com/user-attachments/assets/0fc2f339-19e3-41d9-8717-7ac491e48440" />
 
 ---
 
-## Architecture
+## Generating Pipeline
 
-```
-Client (browser)
-   │
-   ▼
-FastAPI app (main.py)
-   │
-   ├─ POST /generate  ──► background job on a 1-worker ThreadPoolExecutor
-   │                          │
-   │                          ├─ 1. fetch_frames()        — pull Himawari-8 frames for the time range
-   │                          ├─ 2. interpolate_frames()  — RIFE: generate in-between frames
-   │                          ├─ 3. enhance_frames()      — Real-ESRGAN: 4x upscale / detail enhancement
-   │                          └─ 4. generate_video()       — ffmpeg encode to MP4
-   │
-   ├─ GET  /status    ──► poll job progress (stage, %, message)
-   ├─ GET  /video      ──► serve the finished MP4
-   │
-   └─ POST /analyze    ──► separate background job: run_full_analysis()
-       GET  /analysis-status / /analysis-result
-```
+### 📡 Fetching Frames
 
-**Why a background job instead of handling it inline on the request:** RIFE + Real-ESRGAN inference takes far longer than any reasonable HTTP timeout. `/generate` kicks the actual pipeline off on a `ThreadPoolExecutor` and returns immediately; the frontend polls `/status` to track progress.
+<img width="1872" alt="Fetching" src="https://github.com/user-attachments/assets/75d11cd6-ce48-4a84-b33c-d7f68972011c" />
 
-**Why `max_workers=1` on the executor:** RIFE and Real-ESRGAN are both substantial models. Letting two pipeline runs execute concurrently would mean two full copies of that model stack in memory at once — affordable on a beefy machine, not on a constrained host. Capping the executor at one worker means at most one run's models are ever loaded simultaneously.
+### 🔀 RIFE Frame Interpolation
 
-**Why frame resolution is capped (`MAX_DIM`) before interpolation:** full-resolution Himawari-8 frames are large enough that running them through RIFE directly risked exceeding available memory on its own, independent of everything else. Downscaling before interpolation keeps peak memory bounded.
+<img width="1868" alt="Interpolation" src="https://github.com/user-attachments/assets/eae8873b-9246-41e9-a80b-f2b9fb16e508" />
+
+### ✨ Real-ESRGAN Enhancement
+
+<img width="1873" alt="Enhancement" src="https://github.com/user-attachments/assets/34b46e87-3dc4-415d-b106-d93bcdf87bb6" />
+
+### 🎬 Generated Satellite Video
+
+<img width="1877" alt="Video" src="https://github.com/user-attachments/assets/25c39716-20a4-4062-9d25-91b630bfecc5" />
+
+### 🔬 Frame Analysis
+
+<img width="1860" alt="Analysis" src="https://github.com/user-attachments/assets/765eb0ca-904b-4993-a4ce-0711a70f39ec" />
 
 ---
 
-## The deployment debugging story
+# 🏗️ Architecture
 
-This app runs fine locally. Deployed to Render's free tier, it returned `502 Bad Gateway` on `/status`. Chasing that down turned into a useful lesson in how a healthy app and a starved one can look identical from the outside — and where to actually look to tell them apart.
+```text
+Client (Browser)
+      │
+      ▼
+ FastAPI Backend
+      │
+      ├─────────────── POST /generate
+      │
+      ▼
+Fetch Himawari Frames
+      │
+      ▼
+RIFE Frame Interpolation
+      │
+      ▼
+Real-ESRGAN Enhancement
+      │
+      ▼
+FFmpeg Video Encoding
+      │
+      ▼
+Generated MP4 Video
 
-### 1. First guess: blocking code — wrong, but worth ruling out
+Frontend polls:
 
-The obvious suspect for a `/status` hang is something blocking the event loop — a synchronous call inside an `async def` route that stalls every other request behind it. Checked first, ruled out quickly: `/generate` already offloads the real work to a `ThreadPoolExecutor`, so the event loop stays free to keep answering `/status`.
+GET /status
+GET /video
 
-### 2. The dashboard had the actual answer
+Analysis:
 
-Render's own dashboard for the service stated it plainly: **"Ran out of memory (used over 512MB)."** Not a code logic bug — a resource ceiling.
+POST /analyze
+GET /analysis-status
+GET /analysis-result
+```
 
-### 3. The crash was happening at *boot*, before any request arrived
+### Why background jobs?
 
-The OOM wasn't triggered by load — it was happening during container startup, before a single request could be served. The cause: `main.py` imported `torch`, `opencv`, `basicsr`, and `realesrgan` at module level. In Python, importing these isn't free — `torch` alone routinely costs 150–300MB+ of memory just to load its runtime, before any model or tensor exists. With several of these heavy libraries all importing eagerly at the top of the file, the process could exceed 512MB before `uvicorn` even finished binding to a port.
+Running RIFE and Real-ESRGAN inference takes much longer than a typical HTTP request timeout.
 
-### 4. Fixes applied, in order
+Instead of blocking the request, `/generate` immediately starts a background task using a `ThreadPoolExecutor`. The frontend polls `/status` to display progress while the pipeline executes asynchronously.
 
-- **Resolution cap (`MAX_DIM`)** on frames before RIFE interpolation — full-size Himawari-8 frames were likely too large to run inference on safely within 512MB.
-- **Lighter dependencies**: switched `torch`/`torchvision` to CPU-only wheels (the default install pulls bloated CUDA builds that are irrelevant on a CPU-only host), swapped `opencv-python` for `opencv-python-headless` (drops GUI dependencies the server never needs), and removed an unused `gfpgan` dependency.
-- **Lazy imports**: moved `torch` (and friends) from module-level imports to function-level imports, deferred until the first time the pipeline actually runs. This fixed the boot-time crash — the server now starts cleanly every time.
-- **A live config bug, found along the way**: the Dockerfile's `CMD` was running `--workers 2`, despite a comment right above it saying `--workers 1`. Two workers means two full independent copies of the entire ML stack loaded in memory at once — quietly doubling peak usage. Fixed to match the comment's intent.
+### Why only one worker?
 
-### Known limitation: free-tier memory ceiling
+Each pipeline execution loads multiple large machine learning models into memory.
 
-Even with all of the above fixed, triggering `/generate` on the deployed instance can still run into memory pressure. At that point the conclusion isn't a remaining code bug — it's that **torch + torchvision + basicsr + realesrgan, loaded together and running real inference, structurally needs more memory than Render's free 512MB tier provides.** That's not something fixable through code changes alone; it would need a host with a larger memory allowance.
+Running multiple workers would duplicate these models in RAM, dramatically increasing memory usage.
 
-Worth being precise about how confident that conclusion actually is: the app boots and runs correctly locally, and breaks only after deploying, which is consistent with a memory-ceiling issue and fits the 512MB limit that Render's own dashboard already confirmed once for the boot-time crash. Render's free tier also spins the instance down after inactivity, which independently produces `502`s on wake-up that look superficially similar but are a different, expected behavior (cold start, not a crash). Direct confirmation of *which* of these is occurring at any given moment — Render's infrastructure-level Events log, rather than the application's own logs — wasn't exhaustively checked on every occurrence, since the OS-level OOM killer terminates a process from outside before it gets the chance to log its own error. So: strong circumstantial evidence, consistent with the known constraint, not independently re-confirmed every single time.
+Using a single worker guarantees that only one inference pipeline runs at a time.
 
-### Alternatives considered for hosting
+### Why downscale frames before interpolation?
 
-| Option | Verdict |
-|---|---|
-| Fly.io | Free tier is legacy-only / no longer available for new apps |
-| PythonAnywhere | No ASGI support — incompatible with FastAPI/uvicorn |
-| Google Cloud Run | Best fit — full Docker support, configurable memory (e.g. `--memory 2Gi`, `--no-cpu-throttling`), generous free quota — but exceeding that quota requires billing enabled |
+Native Himawari-8 frames are extremely large.
 
-### Why this is still deployed on the free tier
+Running interpolation directly on full-resolution images risks exhausting available memory, especially on low-memory deployments.
 
-This project is a portfolio piece, not a production service. Rather than pay to host a memory-hungry ML pipeline indefinitely, the chosen tradeoff is: keep the free-tier deployment up as a live demo (with the known cold-start/memory caveats above), and rely on the included **demo video** as the reliable, always-working proof that the full pipeline works end-to-end — independent of whatever mood Render's free tier is in on a given day.
+Frames are resized before RIFE inference to keep memory usage bounded.
 
 ---
 
-## Tech stack
+# 🤖 AI Models Used
 
-- **Backend**: FastAPI, served with `uvicorn`
-- **Frame interpolation**: RIFE
-- **Super-resolution**: Real-ESRGAN (`basicsr`, `realesrgan`)
-- **Video encoding**: ffmpeg
-- **Deployment**: Docker, Render
+| Model | Purpose |
+|---------|----------|
+| Himawari-8 | Satellite imagery |
+| RIFE (ECCV2022) | Frame interpolation |
+| Real-ESRGAN | Super resolution |
+| FFmpeg | MP4 encoding |
 
-## Project structure
+---
+
+# 🚧 Deployment Challenges & Lessons Learned
+
+This application works flawlessly on a local machine but exposed several interesting deployment challenges when hosted on Render's free tier.
+
+## 1. Initial suspicion: blocking code
+
+The first hypothesis was that synchronous work inside an `async` endpoint was blocking FastAPI's event loop.
+
+This was ruled out because `/generate` already offloads the heavy pipeline onto a `ThreadPoolExecutor`, allowing `/status` to remain responsive.
+
+---
+
+## 2. Render dashboard revealed the real issue
+
+Render reported:
+
+> **Ran out of memory (used over 512MB)**
+
+This indicated that the issue wasn't application logic—it was resource exhaustion.
+
+---
+
+## 3. Boot-time memory exhaustion
+
+The process exceeded Render's memory limit before serving any requests.
+
+The root cause was eager imports of heavy machine learning libraries:
+
+- torch
+- torchvision
+- basicsr
+- realesrgan
+- opencv
+
+Simply importing these libraries consumes hundreds of megabytes before any inference begins.
+
+---
+
+## 4. Improvements applied
+
+Several optimizations significantly reduced memory usage:
+
+- Added a maximum frame resolution before interpolation.
+- Replaced GPU-enabled PyTorch wheels with CPU-only builds.
+- Switched `opencv-python` to `opencv-python-headless`.
+- Removed unused dependencies.
+- Converted eager imports into lazy imports.
+- Fixed Docker configuration to use a single worker.
+
+These changes eliminated boot-time crashes.
+
+---
+
+## Remaining limitation
+
+Although startup memory usage was greatly reduced, the complete inference pipeline still requires more memory than Render's free 512 MB tier can provide.
+
+This limitation stems from simultaneously loading:
+
+- PyTorch
+- RIFE
+- Real-ESRGAN
+- OpenCV
+
+during inference.
+
+The application therefore serves as a functional live demonstration, while the included demo video showcases the complete pipeline without infrastructure limitations.
+
+---
+
+# 🚀 Local Setup
+
+Clone the repository:
+
+```bash
+git clone https://github.com/sonika2207/Geostream.git
+```
+
+Navigate into the backend:
+
+```bash
+cd Geostream/backend
+```
+
+Create a virtual environment:
+
+```bash
+python -m venv venv
+```
+
+Activate it:
+
+### Windows
+
+```bash
+venv\Scripts\activate
+```
+
+### Linux / macOS
+
+```bash
+source venv/bin/activate
+```
+
+Install dependencies:
+
+```bash
+pip install -r requirements.txt
+```
+
+Start the server:
+
+```bash
+uvicorn main:app --reload
+```
+
+Visit:
 
 ```
+http://127.0.0.1:8000
+```
+
+---
+
+# 📁 Project Structure
+
+```text
+Geostream/
+
 backend/
-  main.py                # FastAPI app, routes, pipeline orchestration
-  goes_fetcher.py         # Himawari-8 frame fetching
-  rife_interpolator.py    # RIFE frame interpolation
-  esrgan_enhancer.py       # Real-ESRGAN enhancement
-  video_generator.py       # ffmpeg video encoding
-  frame_analyzer.py        # frame-sequence analysis
+│
+├── main.py
+├── goes_fetcher.py
+├── rife_interpolator.py
+├── esrgan_enhancer.py
+├── frame_analyzer.py
+├── video_generator.py
+├── requirements.txt
+└── Dockerfile
+
 frontend/
-  index.html, result.html, analysis-report.html
-Dockerfile
-requirements.txt
+│
+├── index.html
+├── result.html
+├── analysis-report.html
+├── style.css
+└── script.js
 ```
+
+---
+
+# 🛠️ Tech Stack
+
+### Backend
+
+- FastAPI
+- Uvicorn
+
+### AI
+
+- PyTorch
+- RIFE
+- Real-ESRGAN
+
+### Computer Vision
+
+- OpenCV
+- Pillow
+
+### Video Processing
+
+- FFmpeg
+
+### Deployment
+
+- Docker
+- Render
+
+---
+
+# 📄 License
+
+This project is intended for educational and portfolio purposes.
+
+---
+
+# 👩‍💻 Author
+
+**Sonika**
+
+GitHub: https://github.com/sonika2207
