@@ -23,6 +23,9 @@ RIFE_GDRIVE_ID = os.environ.get("RIFE_WEIGHTS_GDRIVE_ID")
 
 OUTPUT_DIR = os.environ.get("RIFE_OUTPUT_DIR") or os.path.join(os.path.dirname(__file__), "data", "interpolated_frames")
 
+# Maximum longest-side dimension fed into RIFE inference (prevents OOM on 512MB containers)
+MAX_DIM = int(os.environ.get("RIFE_MAX_DIM", 1280))
+
 # Logging
 import logging
 from model_downloader import ensure_rife_weights
@@ -102,6 +105,18 @@ def _pad_to_multiple(img: np.ndarray, multiple: int = 32) -> tuple[np.ndarray, t
     return padded, (h, w)
 
 
+def _resize_cap(img: np.ndarray, max_dim: int) -> np.ndarray:
+    """Downscale image so its longest side is at most max_dim, preserving aspect ratio."""
+    h, w = img.shape[:2]
+    longest = max(h, w)
+    if longest <= max_dim:
+        return img
+    scale = max_dim / longest
+    new_w = int(round(w * scale))
+    new_h = int(round(h * scale))
+    return cv2.resize(img, (new_w, new_h), interpolation=cv2.INTER_AREA)
+
+
 def interpolate_frames(input_frames: list[str], exp: int = 1) -> list[str]:
     """
     Interpolate between consecutive frames using RIFE.
@@ -151,6 +166,10 @@ def interpolate_frames(input_frames: list[str], exp: int = 1) -> list[str]:
                 img0 = cv2.resize(img0, (target_w, target_h))
             if (h1, w1) != (target_h, target_w):
                 img1 = cv2.resize(img1, (target_w, target_h))
+
+            # Cap resolution fed into RIFE to prevent OOM on constrained hosts
+            img0 = _resize_cap(img0, MAX_DIM)
+            img1 = _resize_cap(img1, MAX_DIM)
 
             # Convert BGR → RGB
             img0_rgb = cv2.cvtColor(img0, cv2.COLOR_BGR2RGB)
