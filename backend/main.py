@@ -22,11 +22,8 @@ from fastapi.responses import HTMLResponse, FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 
-from goes_fetcher import fetch_frames
-from rife_interpolator import interpolate_frames
-from esrgan_enhancer import enhance_frames
-from video_generator import generate_video
-from frame_analyzer import run_full_analysis
+# Heavy ML imports are deferred to pipeline functions (lazy) to avoid boot-time OOM
+# on memory-constrained hosts (e.g. Render free tier 512MB).
 
 app = FastAPI(title="GeoStream", version="1.0")
 
@@ -174,6 +171,12 @@ async def generate(req: Request):
 
 def _run_pipeline(date_str: str, from_time: str, to_time: str, use_esrgan: bool, rife_exp: int):
     """Execute the full satellite video pipeline."""
+    # Lazy imports: deferred so the server boots without loading ML libs into memory
+    from goes_fetcher import fetch_frames
+    from rife_interpolator import interpolate_frames
+    from esrgan_enhancer import enhance_frames
+    from video_generator import generate_video
+
     pipeline_status["running"] = True
     pipeline_status["error"] = None
 
@@ -267,6 +270,10 @@ async def analyze(req: Request):
 
 def _run_analysis(region: str, date_str: str, from_time: str, to_time: str, fetch_new: bool):
     """Execute frame analysis pipeline."""
+    # Lazy imports: deferred so the server boots without loading ML libs into memory
+    from goes_fetcher import fetch_frames
+    from frame_analyzer import run_full_analysis
+
     try:
         if fetch_new and all([date_str, from_time, to_time]):
             print("📡 Fetching fresh frames for analysis...")
